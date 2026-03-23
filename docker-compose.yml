@@ -1,0 +1,127 @@
+version: "3.9"
+
+# CampusGenie — Docker Compose
+# ETT Course Project | Technology: Docker + RAG
+#
+# Services:
+#   ollama    — Local LLM server (Llama 3)
+#   chromadb  — Vector database for embeddings
+#   backend   — FastAPI RAG pipeline
+#   frontend  — Streamlit chat UI
+#
+# Usage:
+#   docker compose up --build
+#   Open: http://localhost:8501
+
+services:
+
+  # ── Ollama — Local LLM Server ─────────────────────────────────────────────
+  ollama:
+    image: ollama/ollama:latest
+    container_name: campusgenie_ollama
+    restart: unless-stopped
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - campusgenie_net
+
+  # ── ChromaDB — Vector Database ────────────────────────────────────────────
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: campusgenie_chromadb
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+      - PERSIST_DIRECTORY=/chroma/chroma
+      - ANONYMIZED_TELEMETRY=FALSE
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/heartbeat"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - campusgenie_net
+
+  # ── Backend — FastAPI + RAG Pipeline ─────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: campusgenie_backend
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - uploads_data:/app/uploads
+    environment:
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_MODEL=llama3
+      - CHROMA_HOST=chromadb
+      - CHROMA_PORT=8000
+      - CHROMA_COLLECTION=campus_docs
+      - BACKEND_HOST=0.0.0.0
+      - BACKEND_PORT=8080
+      - MAX_UPLOAD_SIZE_MB=50
+      - CHUNK_SIZE=500
+      - CHUNK_OVERLAP=50
+      - RETRIEVAL_TOP_K=5
+      - UPLOAD_DIR=/app/uploads
+    depends_on:
+      chromadb:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]
+      interval: 20s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    networks:
+      - campusgenie_net
+
+  # ── Frontend — Streamlit UI ───────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: campusgenie_frontend
+    restart: unless-stopped
+    ports:
+      - "8501:8501"
+    environment:
+      - BACKEND_URL=http://backend:8080
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - campusgenie_net
+
+# ── Volumes ───────────────────────────────────────────────────────────────────
+volumes:
+  ollama_data:
+    driver: local
+  chroma_data:
+    driver: local
+  uploads_data:
+    driver: local
+
+# ── Network ───────────────────────────────────────────────────────────────────
+networks:
+  campusgenie_net:
+    driver: bridge

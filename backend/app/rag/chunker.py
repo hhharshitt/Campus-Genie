@@ -2,6 +2,10 @@
 CampusGenie — Text Chunker
 Splits extracted PDF pages into overlapping chunks for embedding.
 Preserves source metadata (filename, page number) for citations.
+
+Chunking strategy: word-based sliding window with configurable
+overlap to preserve semantic continuity across chunk boundaries.
+Default: chunk_size=500 words, chunk_overlap=50 words.
 """
 
 from dataclasses import dataclass, field

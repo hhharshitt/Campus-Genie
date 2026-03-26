@@ -22,32 +22,32 @@ logger = logging.getLogger(__name__)
 # The system prompt is the KEY to preventing hallucination.
 # We explicitly tell the model: use ONLY the context below.
 
-RAG_PROMPT_TEMPLATE = """You are CampusGenie, an educational AI assistant designed to help college students understand their course materials thoroughly.
+RAG_PROMPT_TEMPLATE = """You are CampusGenie, an educational AI assistant designed to provide direct, detailed answers to student questions about course materials.
 
-Your purpose is to provide detailed, explanatory answers that help students learn and understand concepts deeply, while also being conversational and approachable.
+RESPONSE STYLE:
+- Provide direct, comprehensive answers without asking cross-questions
+- Focus on explaining concepts thoroughly with proper structure and formatting
+- Include detailed explanations, examples, and context when available
+- Use clear headings, bullet points, and numbered lists for better readability
+- Always cite sources properly using [Source: Document Name, Page X] format
 
-CONVERSATIONAL INTERACTIONS:
-- For greetings (hi, hello, hey, good morning, etc.): Respond warmly and ask how you can help with their studies
-- For basic pleasantries (how are you, thanks, etc.): Respond naturally and guide toward academic questions
-- For simple acknowledgments (ok, thanks, got it): Respond appropriately and offer further assistance
-
-EDUCATIONAL RESPONSES (for substantive questions):
 GUIDELINES:
-1. Use the provided context to answer the student's question comprehensively
-2. Provide detailed explanations that break down complex concepts into understandable parts
-3. Include relevant examples, context, and background information when available
-4. Structure your answers clearly with proper formatting (bullet points, numbered lists, or paragraphs)
-5. Always cite your sources using the format: [Source: Document Name, Page X]
-6. If multiple sources provide different perspectives, synthesize them and reference each
-7. If you cannot find relevant information after careful review, respond with exactly:
+1. Answer the question directly and comprehensively using the provided context
+2. Do NOT ask follow-up questions or engage in conversational exchanges
+3. Provide detailed explanations that break down complex concepts
+4. Include relevant examples, context, and background information
+5. Structure answers clearly with proper formatting
+6. Always cite your sources using the format: [Source: Document Name, Page X]
+7. If multiple sources provide different perspectives, synthesize and reference each
+8. If you cannot find relevant information after careful review, respond with exactly:
    "Not found in uploaded documents. Try uploading a more relevant PDF."
 
 EDUCATIONAL APPROACH:
 - Explain concepts step-by-step for better understanding
 - Provide context to help students see the bigger picture
 - Use clear, educational language appropriate for college-level learning
-- Include practical implications or applications when relevant
-- Help students connect new information to what they might already know
+- Include practical implications and applications when relevant
+- Help students connect new information to existing knowledge
 
 Context from campus documents:
 ---
@@ -59,7 +59,7 @@ Chat History:
 
 Student Question: {question}
 
-Response:"""
+Detailed Educational Answer:"""
 
 NOT_FOUND_RESPONSE = "Not found in uploaded documents."
 
@@ -142,9 +142,9 @@ class LLMClient:
                 model=settings.ollama_model,
                 prompt=prompt,
                 options={
-                    'temperature': 0.2,  # Slightly higher for more detailed responses
+                    'temperature': 0.1,  # Lower temperature for more factual, direct responses
                     'num_ctx': 4096,
-                    'num_predict': 1024,  # Allow longer responses
+                    'num_predict': 1500,  # Allow longer, more detailed responses
                 }
             )
             answer = response['response'].strip()
@@ -199,6 +199,7 @@ class LLMClient:
     def _enhance_answer_formatting(self, answer: str) -> str:
         """
         Enhance answer formatting for better readability and educational value.
+        Ensures proper citations and direct educational responses.
         """
         # Ensure proper spacing and formatting
         lines = answer.split('\n')
@@ -220,9 +221,9 @@ class LLMClient:
         # Ensure proper paragraph breaks
         formatted_answer = '\n\n'.join(formatted_lines)
         
-        # Add educational closing if not present
-        if not any(phrase in formatted_answer.lower() for phrase in ['source:', 'reference:', 'see also']):
-            formatted_answer += "\n\n*Remember to review the source documents for complete details.*"
+        # Add citation reminder if no citations are present in educational responses
+        if not any(phrase in formatted_answer.lower() for phrase in ['source:', 'reference:', '[source:']):
+            formatted_answer += "\n\n*Please refer to the source documents for complete details and proper citations.*"
         
         return formatted_answer
 

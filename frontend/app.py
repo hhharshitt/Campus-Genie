@@ -1,6 +1,6 @@
 """
 CampusGenie — Streamlit Frontend
-Professional UI for the RAG-based campus document assistant.
+RAG-based campus document assistant.
 Pages: Chat | Documents | System Status
 """
 
@@ -13,102 +13,124 @@ API_TIMEOUT = 120
 
 st.set_page_config(
     page_title="CampusGenie",
-    page_icon="🎓",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded",
     menu_items={"About": "CampusGenie — RAG-based AI assistant. ETT Course Project."},
 )
 
-# ── CSS ───────────────────────────────────────────────────────────────────────
-
+# ── Styles ─────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
-[data-testid="stAppViewContainer"] { background-color: #f8f9fb; }
-[data-testid="stSidebar"] { background-color: #ffffff; border-right: 1px solid #e8eaed; }
+[data-testid="stAppViewContainer"] { background-color: #f5f6fa; }
+[data-testid="stSidebar"] { background-color: #ffffff; border-right: 1px solid #e2e5ee; }
+[data-testid="stSidebar"] [data-testid="stVerticalBlock"] { padding-top: 0; }
+#MainMenu, footer, header { visibility: hidden; }
+[data-testid="stToolbar"] { display: none; }
 
-.cg-header {
-    background: #1a1f36;
-    border-radius: 10px;
-    padding: 20px 28px;
-    margin-bottom: 24px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+.sb-brand { padding: 20px 0 14px; border-bottom: 1px solid #f0f1f5; margin-bottom: 16px; }
+.sb-brand-name { font-size: 1.05rem; font-weight: 700; color: #1a1f36; letter-spacing: -0.3px; }
+.sb-brand-tag  { font-size: 0.72rem; color: #9aa0b4; margin-top: 2px; }
+
+.page-header {
+    background: #ffffff; border: 1px solid #e2e5ee; border-radius: 12px;
+    padding: 20px 24px; margin-bottom: 24px;
+    display: flex; align-items: center; justify-content: space-between;
 }
-.cg-header-title { color: #ffffff; font-size: 1.4rem; font-weight: 700; margin: 0; }
-.cg-header-sub   { color: #9aa0b4; font-size: 0.82rem; margin: 4px 0 0; }
-.cg-badge {
-    background: #2d3561; color: #7c8cf8;
-    border-radius: 6px; padding: 4px 12px;
-    font-size: 0.72rem; font-weight: 600; letter-spacing: 0.5px;
+.page-header-left h2 { font-size: 1.2rem; font-weight: 700; color: #1a1f36; margin: 0; }
+.page-header-left p  { font-size: 0.82rem; color: #6b7280; margin: 4px 0 0; }
+.page-header-badge {
+    background: #eef0fd; color: #4f46e5; border-radius: 6px;
+    padding: 5px 14px; font-size: 0.72rem; font-weight: 600;
+    letter-spacing: 0.4px; text-transform: uppercase;
 }
 
-.msg-user {
-    background: #ffffff; border: 1px solid #e8eaed;
-    border-radius: 12px 12px 4px 12px;
-    padding: 12px 16px; margin: 8px 0;
-    max-width: 80%; margin-left: auto;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+.stat-row { display: flex; gap: 14px; margin-bottom: 22px; }
+.stat-card {
+    flex: 1; background: #ffffff; border: 1px solid #e2e5ee;
+    border-radius: 10px; padding: 16px 18px;
 }
-.msg-bot {
-    background: #ffffff; border: 1px solid #e8eaed;
-    border-left: 3px solid #7c8cf8;
-    border-radius: 4px 12px 12px 12px;
-    padding: 12px 16px; margin: 8px 0;
-    max-width: 92%;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-}
-.msg-notfound {
-    background: #fff8f0; border: 1px solid #ffd0a8;
-    border-left: 3px solid #f97316;
-    border-radius: 4px 12px 12px 12px;
-    padding: 12px 16px; margin: 8px 0;
-    max-width: 92%; color: #92400e; font-size: 0.92rem;
-}
-.msg-label {
-    font-size: 0.7rem; font-weight: 600;
-    text-transform: uppercase; letter-spacing: 0.5px;
-    margin-bottom: 5px;
-}
-.msg-user .msg-label { color: #9aa0b4; }
-.msg-bot  .msg-label { color: #7c8cf8; }
-.msg-text { color: #1a1f36; font-size: 0.93rem; line-height: 1.6; }
+.stat-label { font-size: 0.73rem; color: #9aa0b4; font-weight: 500;
+              text-transform: uppercase; letter-spacing: 0.4px; }
+.stat-value { font-size: 1.5rem; font-weight: 700; color: #1a1f36; margin-top: 4px; line-height: 1; }
 
-.citation-block {
-    background: #f8f9fb; border: 1px solid #e8eaed;
-    border-radius: 8px; padding: 10px 14px; margin: 5px 0;
+.chat-wrap { display: flex; flex-direction: column; gap: 16px; margin-bottom: 16px; }
+.msg-row-user { display: flex; justify-content: flex-end; }
+.msg-row-bot  { display: flex; justify-content: flex-start; }
+.msg-bubble { max-width: 78%; border-radius: 14px; padding: 13px 16px;
+              font-size: 0.9rem; line-height: 1.65; }
+.msg-bubble-user {
+    background: #4f46e5; color: #ffffff; border-bottom-right-radius: 4px;
 }
-.cite-title   { font-weight: 600; color: #1a1f36; font-size: 0.84rem; }
-.cite-page    { color: #7c8cf8; font-size: 0.76rem; font-weight: 500; margin-left: 8px; }
-.cite-snippet { color: #6b7280; font-size: 0.82rem; margin-top: 5px;
-                font-style: italic; line-height: 1.4;
-                border-left: 2px solid #e8eaed; padding-left: 8px; }
+.msg-bubble-bot {
+    background: #ffffff; color: #1a1f36; border: 1px solid #e2e5ee;
+    border-bottom-left-radius: 4px; box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+.msg-bubble-notfound {
+    background: #fff7ed; color: #92400e; border: 1px solid #fed7aa;
+    border-bottom-left-radius: 4px;
+}
+.msg-sender { font-size: 0.7rem; font-weight: 600; text-transform: uppercase;
+              letter-spacing: 0.5px; margin-bottom: 5px; opacity: 0.6; }
 
-.pill { display: inline-block; border-radius: 20px; padding: 3px 11px;
-        font-size: 0.73rem; font-weight: 600; }
-.pill-up  { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-.pill-down{ background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
-.pill-deg { background: #fffbeb; color: #92400e; border: 1px solid #fde68a; }
+.cite-wrap { margin-top: 10px; border-top: 1px solid #f0f1f5; padding-top: 10px; }
+.cite-item {
+    background: #f8f9fc; border: 1px solid #e8eaed; border-left: 3px solid #4f46e5;
+    border-radius: 6px; padding: 9px 12px; margin-bottom: 6px;
+}
+.cite-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; }
+.cite-doc  { font-size: 0.8rem; font-weight: 600; color: #1a1f36; }
+.cite-pg   { font-size: 0.72rem; background: #eef0fd; color: #4f46e5;
+             border-radius: 4px; padding: 1px 7px; font-weight: 500; }
+.cite-snip { font-size: 0.78rem; color: #6b7280; font-style: italic; line-height: 1.5; }
 
-.empty-state { text-align: center; padding: 48px 20px; color: #9aa0b4; }
-.empty-state h3 { color: #6b7280; font-size: 1.05rem; margin-bottom: 8px; }
-.empty-state p  { font-size: 0.86rem; line-height: 1.6; }
+.doc-name { font-size: 0.9rem; font-weight: 600; color: #1a1f36; }
+.doc-meta { font-size: 0.76rem; color: #9aa0b4; margin-top: 3px; }
+.doc-pill {
+    font-size: 0.72rem; font-weight: 500; background: #f5f6fa; color: #4b5563;
+    border: 1px solid #e2e5ee; border-radius: 5px; padding: 3px 10px;
+    display: inline-block; margin-right: 6px;
+}
 
-#MainMenu { visibility: hidden; }
-footer    { visibility: hidden; }
-header    { visibility: hidden; }
+.svc-row {
+    background: #ffffff; border: 1px solid #e2e5ee; border-radius: 10px;
+    padding: 14px 18px; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 16px;
+}
+.svc-name { font-size: 0.88rem; font-weight: 600; color: #1a1f36; flex: 1; }
+.svc-desc { font-size: 0.78rem; color: #9aa0b4; flex: 2; }
+.badge-up   { background:#ecfdf5; color:#065f46; border:1px solid #bbf7d0;
+              border-radius:5px; padding:3px 10px; font-size:0.72rem; font-weight:600; }
+.badge-down { background:#fef2f2; color:#991b1b; border:1px solid #fecaca;
+              border-radius:5px; padding:3px 10px; font-size:0.72rem; font-weight:600; }
+.badge-deg  { background:#fffbeb; color:#92400e; border:1px solid #fde68a;
+              border-radius:5px; padding:3px 10px; font-size:0.72rem; font-weight:600; }
+.badge-unk  { background:#f5f6fa; color:#6b7280; border:1px solid #e2e5ee;
+              border-radius:5px; padding:3px 10px; font-size:0.72rem; font-weight:600; }
+
+.empty-state {
+    text-align: center; padding: 56px 24px; background: #ffffff;
+    border: 1px dashed #d1d5db; border-radius: 12px; color: #9aa0b4;
+}
+.empty-state h3 { font-size: 1rem; color: #4b5563; margin: 0 0 8px; }
+.empty-state p  { font-size: 0.84rem; line-height: 1.65; margin: 0; }
+
+.section-title {
+    font-size: 0.78rem; font-weight: 600; color: #6b7280;
+    text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 12px;
+}
+.upload-zone {
+    background: #ffffff; border: 1px solid #e2e5ee;
+    border-radius: 10px; padding: 20px 24px; margin-bottom: 20px;
+}
 </style>
 """, unsafe_allow_html=True)
 
-
-# ── Session state ─────────────────────────────────────────────────────────────
-
+# ── Session state ──────────────────────────────────────────────────────────────
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-
-# ── API helpers ───────────────────────────────────────────────────────────────
-
+# ── API helpers ────────────────────────────────────────────────────────────────
 def api_get(path):
     try:
         r = httpx.get(f"{BACKEND_URL}{path}", timeout=10)
@@ -144,86 +166,86 @@ def fetch_docs():
 def check_health():
     return api_get("/api/health") or {"status": "unknown", "services": {}}
 
-
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-
+# ── Sidebar ────────────────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("""
-    <div style='padding:12px 0 6px;'>
-        <div style='font-size:1.15rem;font-weight:700;color:#1a1f36;'>CampusGenie</div>
-        <div style='font-size:0.76rem;color:#9aa0b4;margin-top:2px;'>ETT Course Project</div>
+    <div class="sb-brand">
+        <div class="sb-brand-name">CampusGenie</div>
+        <div class="sb-brand-tag">ETT Course Project &nbsp;&middot;&nbsp; RAG + Docker</div>
     </div>
     """, unsafe_allow_html=True)
 
-    st.divider()
+    page = st.radio(
+        "Navigation", ["Chat", "Documents", "System Status"],
+        label_visibility="collapsed",
+    )
 
-    page = st.radio("Nav", ["Chat", "Documents", "System Status"], label_visibility="collapsed")
-
-    st.divider()
+    st.markdown("<div style='margin:16px 0;border-top:1px solid #f0f1f5;'></div>",
+                unsafe_allow_html=True)
 
     selected_docs = []
-    if page == "Chat":
-        st.markdown("<div style='font-size:0.76rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;'>Document Filter</div>", unsafe_allow_html=True)
-        docs = fetch_docs()
-        doc_names = [d["filename"] for d in docs]
-        if doc_names:
-            selected_docs = st.multiselect(
-                "Filter", options=doc_names, default=[],
-                placeholder="All documents", label_visibility="collapsed",
-            )
-            st.caption(f"{len(doc_names)} document(s) indexed")
-        else:
-            st.caption("No documents uploaded yet")
-        st.divider()
+    docs_sidebar = fetch_docs()
 
-    docs_all = fetch_docs()
-    total_chunks = sum(d.get("chunk_count", 0) for d in docs_all)
+    if page == "Chat":
+        st.markdown("<div class='section-title'>Filter Documents</div>", unsafe_allow_html=True)
+        if docs_sidebar:
+            selected_docs = st.multiselect(
+                "Filter", options=[d["filename"] for d in docs_sidebar],
+                default=[], placeholder="Search all documents",
+                label_visibility="collapsed",
+            )
+        else:
+            st.caption("No documents uploaded yet.")
+        st.markdown("<div style='margin:14px 0;border-top:1px solid #f0f1f5;'></div>",
+                    unsafe_allow_html=True)
+
+    total_chunks = sum(d.get("chunk_count", 0) for d in docs_sidebar)
     st.markdown(f"""
-    <div style='font-size:0.78rem;color:#9aa0b4;line-height:2;'>
-        Documents: <strong style='color:#1a1f36;'>{len(docs_all)}</strong><br>
-        Chunks: <strong style='color:#1a1f36;'>{total_chunks}</strong><br>
-        Messages: <strong style='color:#1a1f36;'>{len(st.session_state.messages)}</strong>
+    <div style='font-size:0.78rem;line-height:2.1;'>
+        <span style='color:#9aa0b4;'>Documents</span>
+        <strong style='color:#1a1f36;float:right;'>{len(docs_sidebar)}</strong><br>
+        <span style='color:#9aa0b4;'>Total chunks</span>
+        <strong style='color:#1a1f36;float:right;'>{total_chunks}</strong><br>
+        <span style='color:#9aa0b4;'>Messages</span>
+        <strong style='color:#1a1f36;float:right;'>{len(st.session_state.messages)}</strong>
     </div>
     """, unsafe_allow_html=True)
 
-
-# ── Page header ───────────────────────────────────────────────────────────────
-
+# ── Page header ────────────────────────────────────────────────────────────────
 PAGE_META = {
-    "Chat":          ("Ask CampusGenie",   "Query your campus documents using natural language"),
-    "Documents":     ("Document Manager",  "Upload, view and manage indexed PDF documents"),
-    "System Status": ("System Status",     "Health and diagnostics for all backend services"),
+    "Chat":          ("Ask CampusGenie",  "Natural language queries over your campus documents"),
+    "Documents":     ("Document Manager", "Upload and manage indexed PDF documents"),
+    "System Status": ("System Status",    "Service health and RAG pipeline diagnostics"),
 }
 title, subtitle = PAGE_META[page]
 st.markdown(f"""
-<div class="cg-header">
-    <div>
-        <p class="cg-header-title">{title}</p>
-        <p class="cg-header-sub">{subtitle}</p>
+<div class="page-header">
+    <div class="page-header-left">
+        <h2>{title}</h2>
+        <p>{subtitle}</p>
     </div>
-    <span class="cg-badge">RAG + Docker</span>
+    <span class="page-header-badge">RAG + Docker</span>
 </div>
 """, unsafe_allow_html=True)
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
 # PAGE: CHAT
-# ═══════════════════════════════════════════════════════════════════════════════
-
+# ══════════════════════════════════════════════════════════════════════════════
 if page == "Chat":
     docs = fetch_docs()
+
     if not docs:
         st.markdown("""
         <div class="empty-state">
-            <h3>No documents indexed yet</h3>
-            <p>Go to the <strong>Documents</strong> tab and upload a campus PDF<br>
-            to start asking questions.</p>
+            <h3>No documents indexed</h3>
+            <p>Go to the <strong>Documents</strong> tab and upload a campus PDF.<br>
+            Once indexed, you can ask questions and get citation-backed answers.</p>
         </div>
         """, unsafe_allow_html=True)
         st.stop()
 
-    col1, col2 = st.columns([6, 1])
-    with col2:
+    col_c1, col_c2 = st.columns([6, 1])
+    with col_c2:
         if st.button("Clear chat", use_container_width=True):
             st.session_state.messages = []
             st.rerun()
@@ -233,49 +255,63 @@ if page == "Chat":
         <div class="empty-state">
             <h3>Start a conversation</h3>
             <p>Ask any question about your uploaded documents.<br>
-            Answers include page-level citations from source PDFs.</p>
-            <p style='margin-top:14px;font-size:0.8rem;color:#b0b8c8;'>
-                Try: "What are the course outcomes?" &nbsp;|&nbsp;
-                "List Unit 3 topics." &nbsp;|&nbsp;
+            Every answer includes page-level citations from the source PDF.</p>
+            <p style="margin-top:16px;font-size:0.8rem;color:#b0b8c8;">
+                Examples &mdash;
+                "What are the course outcomes?" &nbsp;|&nbsp;
+                "List all Unit 3 topics." &nbsp;|&nbsp;
                 "What is the attendance policy?"
             </p>
         </div>
         """, unsafe_allow_html=True)
     else:
+        chat_html = '<div class="chat-wrap">'
         for msg in st.session_state.messages:
             if msg["role"] == "user":
-                st.markdown(f"""
-                <div class="msg-user">
-                    <div class="msg-label">You</div>
-                    <div class="msg-text">{msg["content"]}</div>
-                </div>""", unsafe_allow_html=True)
+                chat_html += f"""
+                <div class="msg-row-user">
+                  <div class="msg-bubble msg-bubble-user">
+                    <div class="msg-sender">You</div>
+                    {msg["content"]}
+                  </div>
+                </div>"""
             else:
                 found = msg.get("found_in_docs", True)
-                citations = msg.get("citations", [])
                 if not found:
-                    st.markdown(f"""
-                    <div class="msg-notfound">
-                        <strong>Not found in uploaded documents.</strong><br>
-                        <span style='font-size:0.85rem;'>
-                            This question could not be answered from the indexed documents.
-                            Try uploading more relevant PDFs.
-                        </span>
-                    </div>""", unsafe_allow_html=True)
+                    chat_html += """
+                    <div class="msg-row-bot">
+                      <div class="msg-bubble msg-bubble-notfound">
+                        <div class="msg-sender">CampusGenie</div>
+                        Not found in uploaded documents.
+                        Try uploading a more relevant PDF.
+                      </div>
+                    </div>"""
                 else:
-                    st.markdown(f"""
-                    <div class="msg-bot">
-                        <div class="msg-label">CampusGenie</div>
-                        <div class="msg-text">{msg["content"]}</div>
-                    </div>""", unsafe_allow_html=True)
+                    citations = msg.get("citations", [])
+                    cite_html = ""
                     if citations:
-                        with st.expander(f"Sources ({len(citations)})", expanded=False):
-                            for c in citations:
-                                st.markdown(f"""
-                                <div class="citation-block">
-                                    <span class="cite-title">{c['document']}</span>
-                                    <span class="cite-page">Page {c['page']}</span>
-                                    <div class="cite-snippet">{c['snippet']}</div>
-                                </div>""", unsafe_allow_html=True)
+                        cite_html = '<div class="cite-wrap">'
+                        for c in citations[:3]:
+                            snip = c["snippet"][:160].replace('"', "&quot;")
+                            cite_html += f"""
+                            <div class="cite-item">
+                              <div class="cite-head">
+                                <span class="cite-doc">{c["document"]}</span>
+                                <span class="cite-pg">Page {c["page"]}</span>
+                              </div>
+                              <div class="cite-snip">{snip}...</div>
+                            </div>"""
+                        cite_html += "</div>"
+                    chat_html += f"""
+                    <div class="msg-row-bot">
+                      <div class="msg-bubble msg-bubble-bot">
+                        <div class="msg-sender">CampusGenie</div>
+                        {msg["content"]}
+                        {cite_html}
+                      </div>
+                    </div>"""
+        chat_html += "</div>"
+        st.markdown(chat_html, unsafe_allow_html=True)
 
     question = st.chat_input("Ask a question about your documents...")
     if question and question.strip():
@@ -300,79 +336,101 @@ if page == "Chat":
             })
             st.rerun()
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
 # PAGE: DOCUMENTS
-# ═══════════════════════════════════════════════════════════════════════════════
-
+# ══════════════════════════════════════════════════════════════════════════════
 elif page == "Documents":
-    st.markdown("#### Upload Document")
-    st.caption("Supported format: PDF. Maximum file size: 50 MB.")
+    docs = fetch_docs()
 
-    uploaded_file = st.file_uploader("Upload PDF", type=["pdf"], label_visibility="collapsed")
+    if docs:
+        total_chunks = sum(d.get("chunk_count", 0) for d in docs)
+        avg = round(total_chunks / len(docs)) if docs else 0
+        st.markdown(f"""
+        <div class="stat-row">
+            <div class="stat-card">
+                <div class="stat-label">Documents</div>
+                <div class="stat-value">{len(docs)}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Chunks</div>
+                <div class="stat-value">{total_chunks}</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Avg Chunks / Doc</div>
+                <div class="stat-value">{avg}</div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
+    st.markdown("<div class='section-title'>Upload Document</div>", unsafe_allow_html=True)
+    uploaded_file = st.file_uploader(
+        "Upload PDF", type=["pdf"], label_visibility="collapsed",
+        help="Maximum file size: 50 MB",
+    )
     if uploaded_file:
-        file_size_kb = len(uploaded_file.getvalue()) / 1024
-        col1, col2, col3 = st.columns([3, 1, 1])
+        size_kb = len(uploaded_file.getvalue()) / 1024
+        col1, col2, col3 = st.columns([4, 1, 1])
         with col1:
             st.markdown(f"**{uploaded_file.name}**")
-            st.caption(f"{file_size_kb:.1f} KB")
+            st.caption(f"{size_kb:.1f} KB")
         with col3:
-            if st.button("Index document", type="primary", use_container_width=True):
+            if st.button("Index", type="primary", use_container_width=True):
                 with st.spinner(f"Indexing {uploaded_file.name}..."):
                     result = api_post(
                         "/api/documents/upload",
-                        files={"file": (uploaded_file.name, uploaded_file.getvalue(), "application/pdf")},
+                        files={"file": (
+                            uploaded_file.name,
+                            uploaded_file.getvalue(),
+                            "application/pdf",
+                        )},
                     )
                 if result:
                     st.success(
-                        f"Indexed successfully — "
-                        f"{result['page_count']} pages, {result['chunk_count']} chunks."
+                        f"Indexed — {result['page_count']} pages, "
+                        f"{result['chunk_count']} chunks."
                     )
                     st.rerun()
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("#### Indexed Documents")
+    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>Indexed Documents</div>", unsafe_allow_html=True)
 
-    docs = fetch_docs()
     if not docs:
         st.markdown("""
         <div class="empty-state">
             <h3>No documents indexed</h3>
             <p>Upload a PDF above to get started.<br>
             Documents are chunked, embedded, and stored in ChromaDB.</p>
-        </div>""", unsafe_allow_html=True)
+        </div>
+        """, unsafe_allow_html=True)
     else:
-        total_chunks = sum(d.get("chunk_count", 0) for d in docs)
-        col1, col2, col3 = st.columns(3)
-        col1.metric("Total documents", len(docs))
-        col2.metric("Total chunks", total_chunks)
-        col3.metric("Avg chunks / doc", round(total_chunks / len(docs)))
-
-        st.markdown("<br>", unsafe_allow_html=True)
-
         for doc in docs:
-            col1, col2, col3, col4 = st.columns([4, 1, 1, 1])
+            col1, col2, col3 = st.columns([5, 2, 1])
             with col1:
-                st.markdown(f"**{doc['filename']}**")
-                st.caption(f"ID: `{doc['doc_id']}`")
+                st.markdown(f"""
+                <div style="padding:4px 0;">
+                  <div class="doc-name">{doc["filename"]}</div>
+                  <div class="doc-meta">ID: {doc["doc_id"]}</div>
+                </div>
+                """, unsafe_allow_html=True)
             with col2:
-                st.markdown(f"<div style='text-align:center;padding-top:8px;'><b>{doc.get('page_count','—')}</b><br><span style='font-size:0.73rem;color:#9aa0b4;'>pages</span></div>", unsafe_allow_html=True)
+                st.markdown(f"""
+                <div style="padding:8px 0;">
+                  <span class="doc-pill">{doc.get("page_count","—")} pages</span>
+                  <span class="doc-pill">{doc["chunk_count"]} chunks</span>
+                </div>
+                """, unsafe_allow_html=True)
             with col3:
-                st.markdown(f"<div style='text-align:center;padding-top:8px;'><b>{doc['chunk_count']}</b><br><span style='font-size:0.73rem;color:#9aa0b4;'>chunks</span></div>", unsafe_allow_html=True)
-            with col4:
                 if st.button("Delete", key=f"del_{doc['doc_id']}", use_container_width=True):
                     res = api_delete(f"/api/documents/{doc['doc_id']}")
                     if res and res.get("success"):
                         st.success("Deleted.")
                         st.rerun()
-            st.divider()
+            st.markdown("<hr style='margin:4px 0;border-color:#f0f1f5;'>",
+                        unsafe_allow_html=True)
 
-
-# ═══════════════════════════════════════════════════════════════════════════════
+# ══════════════════════════════════════════════════════════════════════════════
 # PAGE: SYSTEM STATUS
-# ═══════════════════════════════════════════════════════════════════════════════
-
+# ══════════════════════════════════════════════════════════════════════════════
 elif page == "System Status":
     col1, col2 = st.columns([5, 1])
     with col2:
@@ -384,50 +442,65 @@ elif page == "System Status":
     services = health.get("services", {})
 
     if overall == "healthy":
-        st.success("All services are operational.")
+        st.success("All services operational.")
     elif overall == "degraded":
         st.warning("One or more services are degraded.")
     else:
-        st.error("Unable to reach backend services.")
+        st.error("Backend unreachable. Ensure Docker containers are running.")
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("#### Service Health")
+    st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>Services</div>", unsafe_allow_html=True)
 
-    service_meta = {
-        "backend":  ("FastAPI Backend", "REST API — handles upload and chat requests"),
-        "ollama":   ("Ollama LLM",       "Llama 3 model server — generates answers from context"),
-        "chromadb": ("ChromaDB",         "Vector database — stores and retrieves embeddings"),
+    SERVICES = {
+        "backend":  ("FastAPI Backend",  "REST API — handles upload and chat requests",         "8080"),
+        "ollama":   ("Ollama (Llama 3)", "Local LLM — generates answers from context",          "11434"),
+        "chromadb": ("ChromaDB",         "Vector database — stores and retrieves embeddings",   "8000"),
     }
-
-    for key, (label, description) in service_meta.items():
+    for key, (label, desc, port) in SERVICES.items():
         status = services.get(key, "unknown")
-        pill_class = "pill-up" if status == "up" else ("pill-deg" if status == "degraded" else "pill-down")
-        col1, col2, col3 = st.columns([2, 1, 3])
-        with col1:
-            st.markdown(f"**{label}**")
-        with col2:
-            st.markdown(f'<span class="pill {pill_class}">{status.upper()}</span>', unsafe_allow_html=True)
-        with col3:
-            st.caption(description)
-        st.markdown("<hr style='margin:6px 0;border-color:#f0f0f0;'>", unsafe_allow_html=True)
+        badge = {
+            "up":       '<span class="badge-up">UP</span>',
+            "degraded": '<span class="badge-deg">DEGRADED</span>',
+            "down":     '<span class="badge-down">DOWN</span>',
+        }.get(status, '<span class="badge-unk">UNKNOWN</span>')
+        st.markdown(f"""
+        <div class="svc-row">
+            <div class="svc-name">{label}</div>
+            {badge}
+            <div class="svc-desc">
+                {desc} &nbsp;
+                <span style="color:#d1d5db;">:{port}</span>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    st.markdown("<br>", unsafe_allow_html=True)
-    st.markdown("#### RAG Pipeline")
+    st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+    st.markdown("<div class='section-title'>RAG Pipeline</div>", unsafe_allow_html=True)
     st.code("""
-Indexing  (on PDF upload)
-  PDF file -> PDFProcessor -> TextChunker -> EmbeddingEngine -> ChromaDB
+Indexing  (PDF upload)
+  PDF file
+    -> PDFProcessor    : extract text per page (PyMuPDF)
+    -> TextChunker     : sliding window word chunks (size=500, overlap=50)
+    -> EmbeddingEngine : sentence-transformers / all-MiniLM-L6-v2
+    -> ChromaDB        : store vectors + metadata
 
-Query  (on user question)
-  Question -> EmbeddingEngine -> ChromaDB (top-5) -> Ollama Llama3 -> Answer + Citations
+Query  (user question)
+  Question
+    -> EmbeddingEngine : embed question into query vector
+    -> ChromaDB        : retrieve top-5 similar chunks
+    -> Ollama Llama3   : answer strictly from context (no hallucination)
+    -> Response        : answer text + citations (document, page, snippet)
     """, language="text")
 
-    st.markdown("#### Environment")
+    st.markdown("<div class='section-title'>Runtime Configuration</div>",
+                unsafe_allow_html=True)
     st.json({
-        "backend_url":    BACKEND_URL,
-        "llm_model":      "llama3",
-        "embeddings":     "all-MiniLM-L6-v2",
-        "vector_db":      "chromadb",
-        "chunk_size":     500,
-        "chunk_overlap":  50,
+        "backend_url":     BACKEND_URL,
+        "llm_model":       "llama3",
+        "embedding_model": "all-MiniLM-L6-v2",
+        "vector_db":       "chromadb",
+        "chunk_size":      500,
+        "chunk_overlap":   50,
         "retrieval_top_k": 5,
+        "max_upload_mb":   50,
     })
